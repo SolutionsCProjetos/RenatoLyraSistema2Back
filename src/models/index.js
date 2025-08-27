@@ -3,20 +3,35 @@
 const fs = require("fs");
 const path = require("path");
 const Sequelize = require("sequelize");
+
+// 👇 importa o driver explicitamente (assim a Vercel inclui no bundle)
+const mysql2 = require("mysql2");
+
 const basename = path.basename(__filename);
 const env = process.env.NODE_ENV || "production";
 const config = require(__dirname + "/../config/config.js")[env];
+
+// 👇 garante que o dialect e o módulo do driver estão definidos
+config.dialect = config.dialect || "mysql";
+config.dialectModule = mysql2;
+
 const db = {};
 
 let sequelize;
 if (config.use_env_variable) {
-  sequelize = new Sequelize(process.env[config.use_env_variable], config);
+  sequelize = new Sequelize(process.env[config.use_env_variable], {
+    ...config,
+    dialectModule: mysql2, // reforço
+  });
 } else {
-  sequelize = new Sequelize(
+    sequelize = new Sequelize(
     config.database,
     config.username,
     config.password,
-    config
+    {
+      ...config,
+      dialectModule: mysql2, // reforço
+    }
   );
 }
 
