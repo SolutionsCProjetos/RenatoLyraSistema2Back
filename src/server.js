@@ -1,4 +1,4 @@
-// src/app.js
+// src/server.js
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
@@ -28,9 +28,10 @@ app.use("/", routes);
 // ping
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 
-// não “await” aqui para não travar cold start
+// tenta conectar no DB (sem await)
 sequelize.authenticate()
   .then(() => console.log("DB ok"))
-  .catch(err => console.error("DB error:", err?.message));
+  .catch(e => console.error("DB error:", e?.message));
 
+// 👇 EXPORTA SEM DAR LISTEN (sempre)
 module.exports = app;
