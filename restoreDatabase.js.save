@@ -1,0 +1,42 @@
+require('dotenv').config();
+const mysql = require('mysql2');
+const fs = require('fs');
+const path = require('path');
+
+// Configurações do banco de dados (usando .env)
+const dbConfig = {
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PWD,
+  database: process.env.DB_NAME,
+  port: process.env.DB_PORT || 3306,
+  multipleStatements: true // Permite múltiplos comandos no SQL
+};
+
+// Caminho do backup SQL
+const backupFile = path.join(__dirname, '/root/Backup/ongsdb-2025-01-20/*.sql'); // Altere para o caminho real do seu backup
+
+// Verifica se o arquivo existe
+if (!fs.existsSync(backupFile)) {
+  console.error(`Erro: Arquivo de backup não encontrado em ${backupFile}`);
+  process.exit(1);
+}
+
+// Lê o conteúdo do arquivo SQL
+const sql = fs.readFileSync(backupFile, 'utf8');
+
+// Conecta ao banco de dados
+const connection = mysql.createConnection(dbConfig);
+
+console.log('Restaurando o banco de dados...');
+
+// Executa o SQL do backup
+connection.query(sql, (err, results) => {
+  if (err) {
+    console.error('Erro ao restaurar o banco de dados:', err);
+    connection.end();
+    process.exit(1);
+  }
+  console.log('Banco de dados restaurado com sucesso!');
+  connection.end();
+});
