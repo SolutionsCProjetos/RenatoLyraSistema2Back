@@ -10,40 +10,48 @@ const routes = require("./routes");
 
 const app = express();
 
-// CORS no Express (sem cookies; só Bearer)
+/**
+ * CORS no Express (sem cookies; só Bearer)
+ * O CORS já é injetado na borda, mas mantemos aqui também.
+ */
 app.use(cors({
-  origin: (origin, cb) => cb(null, true), // já ecoado na borda
-  methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
-  allowedHeaders: ["Authorization","Content-Type"],
+  origin: (_origin, cb) => cb(null, true),
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Authorization", "Content-Type"],
   exposedHeaders: ["Authorization"],
   credentials: false,
   optionsSuccessStatus: 204,
 }));
 app.options("*", cors());
 
-// parsers
+// Parsers
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// health (COM prefixo)
-app.get("/api/health", (req, res) => res.json({ ok: true }));
+// Health em AMBAS as bases (com e sem /api) para facilitar debug
+app.get("/health", (_req, res) => res.json({ ok: true }));
+app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
-// suas rotas (elas devem estar definidas com /api/... dentro de routes)
+/**
+ * Monta o mesmo router nas DUAS bases:
+ * - se dentro do routes você tiver paths como "/usuario" → ficarão acessíveis em "/usuario" e "/api/usuario"
+ * - se dentro do routes você tiver paths como "/api/usuario" → continuarão acessíveis em "/api/usuario"
+ *
+ * Isso elimina 404 independentemente de como seus arquivos de rota foram escritos.
+ */
 app.use("/", routes);
+app.use("/api", routes);
 
 // 404
-app.use((req, res) => res.status(404).json({ error: "Not Found" }));
+app.use((_req, res) => res.status(404).json({ error: "Not Found" }));
 
 // DB
 sequelize.authenticate()
   .then(() => console.log("DB ok"))
   .catch(e => console.error("DB error:", e?.message));
 
-module.exports = app; // sem app.listen na Vercel
-
-
-
-
+// NUNCA dar app.listen na Vercel
+module.exports = app;
 
 
 
@@ -97,6 +105,7 @@ module.exports = app; // sem app.listen na Vercel
 
 // // 👇 EXPORTA SEM DAR LISTEN (sempre)
 // module.exports = app;
+
 
 
 
