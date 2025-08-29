@@ -8,30 +8,7 @@ const routes = require("./routes");
 
 const app = express();
 
-// MIDDLEWARE CORS MANUAL (ANTES DE TUDO)
-app.use((req, res, next) => {
-  const allowedOrigins = ['http://localhost:5173', 'http://localhost:3000'];
-  const origin = req.headers.origin;
-  
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-  }
-  
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, X-Requested-With');
-  res.setHeader('Access-Control-Expose-Headers', 'Authorization');
-  res.setHeader('Access-Control-Max-Age', '86400'); // 24 horas
-  res.setHeader('Vary', 'Origin');
-
-  // Responde imediatamente para OPTIONS
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  next();
-});
+// REMOVA TODO O CORS MANUAL - a Vercel vai cuidar disso
 
 // Parsers
 app.use(bodyParser.json());
@@ -99,6 +76,7 @@ module.exports = app;
 
 // // 👇 EXPORTA SEM DAR LISTEN (sempre)
 // module.exports = app;
+
 
 
 
