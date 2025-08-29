@@ -7,36 +7,53 @@
 
 
 
-
 // api/[...all].js
 const app = require("../src/server");
 
-// CORS na borda (antes do Express)
-function setCors(res, origin) {
+function setCors(req, res) {
+  const origin = req.headers.origin;
   if (origin) {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Vary", "Origin");
   } else {
     res.setHeader("Access-Control-Allow-Origin", "*");
   }
-  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+
+  // Ecoa os métodos/headers que o navegador solicitou no preflight
+  const reqMethod = req.headers["access-control-request-method"];
+  const reqHeaders = req.headers["access-control-request-headers"];
+
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    reqMethod ? `${reqMethod},OPTIONS` : "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+  );
+
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    reqHeaders || "Authorization, Content-Type"
+  );
+
   res.setHeader("Access-Control-Expose-Headers", "Authorization");
+  // opcional: cache do preflight
+  res.setHeader("Access-Control-Max-Age", "600");
 }
 
 module.exports = (req, res) => {
-  setCors(res, req.headers.origin);
+  setCors(req, res);
 
-  // responde o preflight aqui mesmo
+  // Responde o preflight aqui mesmo
   if (req.method === "OPTIONS") {
-    res.statusCode = 204;
+    res.statusCode = 200;       // 200 evita algum proxy que poda headers no 204
+    res.setHeader("Content-Length", "0");
     return res.end();
   }
 
-  // ⚠️ NÃO remova o /api – deixe o path como veio
+  // NÃO mexe no path (mantemos /api/...)
   return app(req, res);
 };
 
 module.exports.config = { api: { bodyParser: false } };
+
+
 
 
