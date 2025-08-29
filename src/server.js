@@ -1,4 +1,3 @@
-// src/server.js
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
@@ -10,35 +9,25 @@ const routes = require("./routes");
 
 const app = express();
 
-/**
- * CORS no Express (sem cookies; só Bearer)
- * O CORS já é injetado na borda, mas mantemos aqui também.
- */
+// Configuração simplificada do CORS
 app.use(cors({
-  origin: (_origin, cb) => cb(null, true),
+  origin: true, // Permite qualquer origem (ou defina origens específicas)
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Authorization", "Content-Type"],
   exposedHeaders: ["Authorization"],
   credentials: false,
-  optionsSuccessStatus: 204,
+  optionsSuccessStatus: 200
 }));
-app.options("*", cors());
 
 // Parsers
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Health em AMBAS as bases (com e sem /api) para facilitar debug
+// Health checks
 app.get("/health", (_req, res) => res.json({ ok: true }));
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
-/**
- * Monta o mesmo router nas DUAS bases:
- * - se dentro do routes você tiver paths como "/usuario" → ficarão acessíveis em "/usuario" e "/api/usuario"
- * - se dentro do routes você tiver paths como "/api/usuario" → continuarão acessíveis em "/api/usuario"
- *
- * Isso elimina 404 independentemente de como seus arquivos de rota foram escritos.
- */
+// Rotas
 app.use("/", routes);
 app.use("/api", routes);
 
@@ -50,11 +39,7 @@ sequelize.authenticate()
   .then(() => console.log("DB ok"))
   .catch(e => console.error("DB error:", e?.message));
 
-// NUNCA dar app.listen na Vercel
 module.exports = app;
-
-
-
 
 
 
@@ -105,6 +90,7 @@ module.exports = app;
 
 // // 👇 EXPORTA SEM DAR LISTEN (sempre)
 // module.exports = app;
+
 
 
 
