@@ -1,5 +1,4 @@
 const express = require("express");
-const cors = require("cors");
 const bodyParser = require("body-parser");
 const dotenv = require("dotenv");
 dotenv.config();
@@ -9,28 +8,28 @@ const routes = require("./routes");
 
 const app = express();
 
-// Configuração EXPLÍCITA do CORS
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Permite todas as origens (incluindo null para requests locais)
-    callback(null, true);
-  },
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Authorization", "Content-Type", "X-Requested-With"],
-  exposedHeaders: ["Authorization"],
-  credentials: false,
-  optionsSuccessStatus: 200,
-  preflightContinue: false
-};
-
-app.use(cors(corsOptions));
-
-// Handle OPTIONS requests explicitly
-app.options("*", cors(corsOptions));
-
-// Middleware para debug
+// MIDDLEWARE CORS MANUAL (ANTES DE TUDO)
 app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path} - Origin: ${req.headers.origin}`);
+  const allowedOrigins = ['http://localhost:5173', 'http://localhost:3000'];
+  const origin = req.headers.origin;
+  
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, X-Requested-With');
+  res.setHeader('Access-Control-Expose-Headers', 'Authorization');
+  res.setHeader('Access-Control-Max-Age', '86400'); // 24 horas
+  res.setHeader('Vary', 'Origin');
+
+  // Responde imediatamente para OPTIONS
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   next();
 });
 
@@ -55,8 +54,6 @@ sequelize.authenticate()
   .catch(e => console.error("DB error:", e?.message));
 
 module.exports = app;
-
-
 
 
 
@@ -102,6 +99,7 @@ module.exports = app;
 
 // // 👇 EXPORTA SEM DAR LISTEN (sempre)
 // module.exports = app;
+
 
 
 
