@@ -9,15 +9,30 @@ const routes = require("./routes");
 
 const app = express();
 
-// Configuração simplificada do CORS
-app.use(cors({
-  origin: true, // Permite qualquer origem (ou defina origens específicas)
+// Configuração EXPLÍCITA do CORS
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Permite todas as origens (incluindo null para requests locais)
+    callback(null, true);
+  },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Authorization", "Content-Type"],
+  allowedHeaders: ["Authorization", "Content-Type", "X-Requested-With"],
   exposedHeaders: ["Authorization"],
   credentials: false,
-  optionsSuccessStatus: 200
-}));
+  optionsSuccessStatus: 200,
+  preflightContinue: false
+};
+
+app.use(cors(corsOptions));
+
+// Handle OPTIONS requests explicitly
+app.options("*", cors(corsOptions));
+
+// Middleware para debug
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path} - Origin: ${req.headers.origin}`);
+  next();
+});
 
 // Parsers
 app.use(bodyParser.json());
@@ -40,9 +55,6 @@ sequelize.authenticate()
   .catch(e => console.error("DB error:", e?.message));
 
 module.exports = app;
-
-
-
 
 
 
@@ -90,6 +102,7 @@ module.exports = app;
 
 // // 👇 EXPORTA SEM DAR LISTEN (sempre)
 // module.exports = app;
+
 
 
 
