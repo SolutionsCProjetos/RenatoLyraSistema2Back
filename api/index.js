@@ -11,8 +11,8 @@ module.exports = (req, res) => {
 };
 
 module.exports.config = {
-  api: { 
+  api: {
     bodyParser: false,
-    externalResolver: true 
-  },
+    externalResolver: true
+  }
 };
