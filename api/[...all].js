@@ -8,7 +8,6 @@
 
 
 
-
 // api/[...all].js
 const app = require("../src/server");
 
@@ -28,18 +27,16 @@ function setCors(res, origin) {
 module.exports = (req, res) => {
   setCors(res, req.headers.origin);
 
-  // responde preflight aqui mesmo
+  // responde o preflight aqui mesmo
   if (req.method === "OPTIONS") {
     res.statusCode = 204;
     return res.end();
   }
 
-  // ⚠️ NÃO remova o /api – deixe o path intacto
-  // req.url = req.url.replace(/^\/api/, '');
-
+  // ⚠️ NÃO remova o /api – deixe o path como veio
   return app(req, res);
 };
 
-// evita bodyParser da Vercel interferir
 module.exports.config = { api: { bodyParser: false } };
+
 
