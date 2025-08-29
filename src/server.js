@@ -74,7 +74,6 @@
 
 
 
-
 // src/server.js
 const express = require("express");
 const bodyParser = require("body-parser");
@@ -87,8 +86,10 @@ const routes = require("./routes");
 const app = express();
 
 /**
- * Middleware CORS robusto (funciona muito bem na Vercel).
- * Não usa cookies, só Authorization: Bearer.
+ * CORS sem cookies (Authorization: Bearer)
+ * - responde OPTIONS com 204
+ * - ecoa Origin quando permitido
+ * - permite chamadas server-to-server (sem Origin)
  */
 const ALLOWLIST = new Set([
   "http://localhost:3000",
@@ -98,45 +99,42 @@ const ALLOWLIST = new Set([
 
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (!origin || ALLOWLIST.has(origin)) {
-    // ecoa o origin quando permitido
-    if (origin) {
-      res.setHeader("Access-Control-Allow-Origin", origin);
-      res.setHeader("Vary", "Origin");
-    } else {
-      // chamadas sem Origin (server-to-server)
-      res.setHeader("Access-Control-Allow-Origin", "*");
-    }
-    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    // se precisar expor o Authorization para ler no front (normalmente não precisa)
-    res.setHeader("Access-Control-Expose-Headers", "Authorization");
+
+  if (!origin) {
+    // server-to-server
+    res.setHeader("Access-Control-Allow-Origin", "*");
+  } else if (ALLOWLIST.has(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
   }
-  // responde preflight imediatamente
+
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+  res.setHeader("Access-Control-Expose-Headers", "Authorization");
+
   if (req.method === "OPTIONS") {
     return res.status(204).end();
   }
-  return next();
+  next();
 });
 
-// Parsers
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Healthcheck
+// Health
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 
-// Suas rotas (mantém como está)
+// Rotas da sua API (ex: /api/usuario/:id etc.)
 app.use("/", routes);
 
-// 404 (opcional)
+// 404
 app.use((req, res) => res.status(404).json({ error: "Not Found" }));
 
-// Conexão DB (sem await)
+// DB (sem await)
 sequelize
   .authenticate()
   .then(() => console.log("DB ok"))
   .catch((e) => console.error("DB error:", e?.message));
 
-// Exporta o app (sem listen)
-module.exports = app;
+module.exports = app; // NUNCA dar app.listen na Vercel
+
