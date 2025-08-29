@@ -5,39 +5,14 @@
 //   return app(req, res);
 // };
 
-// api/[...all].js — injeta CORS + encaminha pro Express
+// api/[...all].js
 const app = require("../src/server");
 
-function setCors(res, origin) {
-  if (origin) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-    res.setHeader("Vary", "Origin");
-  } else {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-  }
-  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
-  res.setHeader("Access-Control-Expose-Headers", "Authorization");
-}
-
 module.exports = (req, res) => {
-  setCors(res, req.headers.origin);
-
-  if (req.method === "OPTIONS") {
-    res.statusCode = 204;
-    return res.end();
-  }
-
-  // Remove APENAS o primeiro "/api" do começo do path.
-  if (req.url.startsWith("/api/")) {
-    req.url = req.url.slice(4); // "/api".length === 4
-  } else if (req.url === "/api") {
-    req.url = "/";
-  }
-
-  return app(req, res);
+  // CORS já tratado aqui se quiser
+  return app(req, res); // não mexe em req.url
 };
-module.exports.config = { api: { bodyParser: false } };
 
+module.exports.config = { api: { bodyParser: false } };
 
 
