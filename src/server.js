@@ -1,3 +1,4 @@
+// src/server.js
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
@@ -9,9 +10,9 @@ const routes = require("./routes");
 
 const app = express();
 
-// CORS dentro do Express (belt & suspenders)
+// CORS no Express (sem cookies; só Bearer)
 app.use(cors({
-  origin: (origin, cb) => cb(null, true), // ecoado na borda pelo adapter
+  origin: (origin, cb) => cb(null, true), // já ecoado na borda
   methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
   allowedHeaders: ["Authorization","Content-Type"],
   exposedHeaders: ["Authorization"],
@@ -20,29 +21,25 @@ app.use(cors({
 }));
 app.options("*", cors());
 
-// Parsers
+// parsers
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Health
+// health (COM prefixo)
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 
-// SUAS ROTAS REAIS (sem /api aqui dentro)
+// suas rotas (elas devem estar definidas com /api/... dentro de routes)
 app.use("/", routes);
 
 // 404
 app.use((req, res) => res.status(404).json({ error: "Not Found" }));
 
 // DB
-sequelize.authenticate().then(() => console.log("DB ok")).catch(e => console.error("DB error:", e?.message));
+sequelize.authenticate()
+  .then(() => console.log("DB ok"))
+  .catch(e => console.error("DB error:", e?.message));
 
-module.exports = app;
-
-
-
-
-
-
+module.exports = app; // sem app.listen na Vercel
 
 
 
@@ -100,6 +97,7 @@ module.exports = app;
 
 // // 👇 EXPORTA SEM DAR LISTEN (sempre)
 // module.exports = app;
+
 
 
 
