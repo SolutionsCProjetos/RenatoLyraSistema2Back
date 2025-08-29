@@ -9,53 +9,46 @@ const routes = require("./routes");
 
 const app = express();
 
-/**
- * CORS sem cookies (apenas Authorization: Bearer)
- * - injeta headers em TODAS as respostas
- * - responde o preflight (OPTIONS) com 204
- */
+// ---- CORS ----
 app.use((req, res, next) => {
   const origin = req.headers.origin;
 
-  if (!origin) {
-    // server-to-server
-    res.setHeader("Access-Control-Allow-Origin", "*");
-  } else {
-    // se quiser restringir, troque "*" pelo origin validado
+  // ecoa o origin se existir, senão libera geral
+  if (origin) {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Vary", "Origin");
+  } else {
+    res.setHeader("Access-Control-Allow-Origin", "*");
   }
 
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
   res.setHeader("Access-Control-Expose-Headers", "Authorization");
 
+  // responde preflight sem passar pro restante
   if (req.method === "OPTIONS") {
     return res.status(204).end();
   }
+
   next();
 });
+// ----------------
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Health
 app.get("/api/health", (req, res) => res.json({ ok: true }));
-
-// Suas rotas (garanta que definem /api/usuario, etc.)
 app.use("/", routes);
 
-// 404 padrão
 app.use((req, res) => res.status(404).json({ error: "Not Found" }));
 
-// DB (sem await)
 sequelize
   .authenticate()
   .then(() => console.log("DB ok"))
   .catch((e) => console.error("DB error:", e?.message));
 
-// Exporta o app — NÃO dar app.listen na Vercel
 module.exports = app;
+
 
 
 
@@ -126,6 +119,7 @@ module.exports = app;
 
 // // 👇 EXPORTA SEM DAR LISTEN (sempre)
 // module.exports = app;
+
 
 
 
