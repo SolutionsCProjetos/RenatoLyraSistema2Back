@@ -75,10 +75,8 @@
 
 
 
-
 // src/server.js
 const express = require("express");
-const cors = require("cors");
 const bodyParser = require("body-parser");
 const dotenv = require("dotenv");
 dotenv.config();
@@ -89,34 +87,37 @@ const routes = require("./routes");
 const app = express();
 
 /**
- * CORS — sem cookies (apenas Bearer)
- * Se você realmente não usa cookies HttpOnly, este é o caminho mais estável.
- * - NÃO usar credentials: true
- * - Liberar apenas os origins conhecidos
- * - Garantir preflight (OPTIONS) com os mesmos corsOptions
+ * Middleware CORS robusto (funciona muito bem na Vercel).
+ * Não usa cookies, só Authorization: Bearer.
  */
-const allowlist = [
+const ALLOWLIST = new Set([
   "http://localhost:3000",
   "http://127.0.0.1:3000",
   "https://renato-lyra-sistema2-front.vercel.app",
-];
+]);
 
-const corsOptions = {
-  origin(origin, cb) {
-    // Permite chamadas server-to-server (sem Origin) e tools internas
-    if (!origin) return cb(null, true);
-    if (allowlist.includes(origin)) return cb(null, true);
-    return cb(new Error("Not allowed by CORS"));
-  },
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  exposedHeaders: ["Authorization"],
-  credentials: false, // importante quando NÃO utiliza cookies
-};
-
-// Aplica CORS para todas as rotas e garante preflight
-app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (!origin || ALLOWLIST.has(origin)) {
+    // ecoa o origin quando permitido
+    if (origin) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+      res.setHeader("Vary", "Origin");
+    } else {
+      // chamadas sem Origin (server-to-server)
+      res.setHeader("Access-Control-Allow-Origin", "*");
+    }
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    // se precisar expor o Authorization para ler no front (normalmente não precisa)
+    res.setHeader("Access-Control-Expose-Headers", "Authorization");
+  }
+  // responde preflight imediatamente
+  if (req.method === "OPTIONS") {
+    return res.status(204).end();
+  }
+  return next();
+});
 
 // Parsers
 app.use(bodyParser.json());
@@ -125,21 +126,17 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Healthcheck
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 
-// Suas rotas
+// Suas rotas (mantém como está)
 app.use("/", routes);
 
-// 404 padrão (opcional)
-app.use((req, res) => {
-  return res.status(404).json({ error: "Not Found" });
-});
+// 404 (opcional)
+app.use((req, res) => res.status(404).json({ error: "Not Found" }));
 
-// Conexão com o DB (sem await)
+// Conexão DB (sem await)
 sequelize
   .authenticate()
   .then(() => console.log("DB ok"))
   .catch((e) => console.error("DB error:", e?.message));
 
-// Exporta o app (Vercel usa isso como handler). Não dar listen aqui.
+// Exporta o app (sem listen)
 module.exports = app;
-
-
