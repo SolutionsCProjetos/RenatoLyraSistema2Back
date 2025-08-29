@@ -8,7 +8,7 @@ const routes = require("./routes");
 
 const app = express();
 
-// REMOVA TODO O CORS MANUAL - a Vercel vai cuidar disso
+// ⚠️ REMOVA TODO CORS DAQUI - agora está no api/index.js
 
 // Parsers
 app.use(bodyParser.json());
@@ -31,9 +31,6 @@ sequelize.authenticate()
   .catch(e => console.error("DB error:", e?.message));
 
 module.exports = app;
-
-
-
 
 
 
@@ -76,6 +73,7 @@ module.exports = app;
 
 // // 👇 EXPORTA SEM DAR LISTEN (sempre)
 // module.exports = app;
+
 
 
 
