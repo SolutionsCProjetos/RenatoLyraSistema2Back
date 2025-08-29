@@ -1,7 +1,7 @@
 // src/server.js
 const express = require("express");
-const cors = require("cors");
 const bodyParser = require("body-parser");
+const cors = require("cors");
 const dotenv = require("dotenv");
 dotenv.config();
 
@@ -10,11 +10,7 @@ const routes = require("./routes");
 
 const app = express();
 
-/**
- * CORS (sem cookies; só Bearer). Usa o pacote oficial.
- * - responde OPTIONS 204 automaticamente
- * - permite Authorization no preflight
- */
+// ---- CORS via pacote oficial (sem cookies; só Bearer) ----
 const allowlist = new Set([
   "http://localhost:3000",
   "http://127.0.0.1:3000",
@@ -23,30 +19,33 @@ const allowlist = new Set([
 
 const corsOptionsDelegate = (req, cb) => {
   const origin = req.header("Origin");
-  let corsOptions;
+  // Server-to-server
   if (!origin) {
-    // server-to-server
-    corsOptions = { origin: "*", methods: "GET,POST,PUT,PATCH,DELETE,OPTIONS", allowedHeaders: "Authorization, Content-Type" };
-  } else if (allowlist.has(origin)) {
-    corsOptions = {
-      origin: origin,
+    return cb(null, {
+      origin: "*",
       methods: "GET,POST,PUT,PATCH,DELETE,OPTIONS",
       allowedHeaders: "Authorization, Content-Type",
       exposedHeaders: "Authorization",
-      credentials: false,
       optionsSuccessStatus: 204,
-    };
-  } else {
-    // bloqueia origens não permitidas
-    corsOptions = { origin: false };
+    });
   }
-  cb(null, corsOptions);
+  // Browser
+  if (allowlist.has(origin)) {
+    return cb(null, {
+      origin,
+      credentials: false, // não usamos cookies
+      methods: "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+      allowedHeaders: "Authorization, Content-Type",
+      exposedHeaders: "Authorization",
+      optionsSuccessStatus: 204,
+    });
+  }
+  return cb(null, { origin: false });
 };
 
-// CORS para todas as rotas
 app.use(cors(corsOptionsDelegate));
-// CORS específico pro preflight (resolve antes de chegar nas rotas)
 app.options("*", cors(corsOptionsDelegate));
+// -----------------------------------------------------------
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -54,7 +53,13 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Health
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 
-// Suas rotas (ex.: /api/usuario, etc.)
+/**
+ * Suas rotas.
+ * Como o handler da Vercel remove "/api", mantenha suas rotas
+ * como estavam (ex.: router.get("/usuario", ...)).
+ * Se você já tiver alguma rota com "/api/..." dentro do routes,
+ * tudo bem — fica acessível por /api/api/... (evite isso).
+ */
 app.use("/", routes);
 
 // 404 padrão
@@ -66,8 +71,7 @@ sequelize
   .then(() => console.log("DB ok"))
   .catch((e) => console.error("DB error:", e?.message));
 
-module.exports = app; // NUNCA dar app.listen na Vercel
-
+module.exports = app; // NÃO dar app.listen na Vercel
 
 
 
@@ -139,6 +143,7 @@ module.exports = app; // NUNCA dar app.listen na Vercel
 
 // // 👇 EXPORTA SEM DAR LISTEN (sempre)
 // module.exports = app;
+
 
 
 
