@@ -1,7 +1,6 @@
-// src/server.js
 const express = require("express");
-const bodyParser = require("body-parser");
 const cors = require("cors");
+const bodyParser = require("body-parser");
 const dotenv = require("dotenv");
 dotenv.config();
 
@@ -10,76 +9,34 @@ const routes = require("./routes");
 
 const app = express();
 
-// ---- CORS via pacote oficial (sem cookies; só Bearer) ----
-const allowlist = new Set([
-  "http://localhost:3000",
-  "http://127.0.0.1:3000",
-  "https://renato-lyra-sistema2-front.vercel.app",
-]);
+// CORS dentro do Express (belt & suspenders)
+app.use(cors({
+  origin: (origin, cb) => cb(null, true), // ecoado na borda pelo adapter
+  methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
+  allowedHeaders: ["Authorization","Content-Type"],
+  exposedHeaders: ["Authorization"],
+  credentials: false,
+  optionsSuccessStatus: 204,
+}));
+app.options("*", cors());
 
-const corsOptionsDelegate = (req, cb) => {
-  const origin = req.header("Origin");
-  // Server-to-server
-  if (!origin) {
-    return cb(null, {
-      origin: "*",
-      methods: "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-      allowedHeaders: "Authorization, Content-Type",
-      exposedHeaders: "Authorization",
-      optionsSuccessStatus: 204,
-    });
-  }
-  // Browser
-  if (allowlist.has(origin)) {
-    return cb(null, {
-      origin,
-      credentials: false, // não usamos cookies
-      methods: "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-      allowedHeaders: "Authorization, Content-Type",
-      exposedHeaders: "Authorization",
-      optionsSuccessStatus: 204,
-    });
-  }
-  return cb(null, { origin: false });
-};
-
-app.use(cors(corsOptionsDelegate));
-app.options("*", cors(corsOptionsDelegate));
-// -----------------------------------------------------------
-
+// Parsers
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Health
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 
-/**
- * Suas rotas.
- * Como o handler da Vercel remove "/api", mantenha suas rotas
- * como estavam (ex.: router.get("/usuario", ...)).
- * Se você já tiver alguma rota com "/api/..." dentro do routes,
- * tudo bem — fica acessível por /api/api/... (evite isso).
- */
+// SUAS ROTAS REAIS (sem /api aqui dentro)
 app.use("/", routes);
 
-// 404 padrão
+// 404
 app.use((req, res) => res.status(404).json({ error: "Not Found" }));
 
-// DB (sem await)
-sequelize
-  .authenticate()
-  .then(() => console.log("DB ok"))
-  .catch((e) => console.error("DB error:", e?.message));
+// DB
+sequelize.authenticate().then(() => console.log("DB ok")).catch(e => console.error("DB error:", e?.message));
 
-module.exports = app; // NÃO dar app.listen na Vercel
-
-
-
-
-
-
-
-
+module.exports = app;
 
 
 
@@ -143,6 +100,7 @@ module.exports = app; // NÃO dar app.listen na Vercel
 
 // // 👇 EXPORTA SEM DAR LISTEN (sempre)
 // module.exports = app;
+
 
 
 
